@@ -1,5 +1,7 @@
 <!-- NomeDoApp = "Preparo de Soluções" -->
-<!-- AndroidVersionName = "1.10.09.13"; AndroidVersionCode = "262562127"; Timestamp = "2026-09-13T21:27:10-03:00" -->
+<!-- VersionName = "1.11.10.13" -->
+<!-- VersionCode = "262840821" -->
+<!-- AndroidVersionName = "1.11.10.13"; AndroidVersionCode = "262840821"; Timestamp = "2026-09-13T21:27:10-03:00" -->
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -113,6 +115,9 @@
       color: var(--muted);
     }
 
+    .flow-help { margin: -6px 0 14px; line-height: 1.45; }
+    .field-error { color: var(--error-ink); font-size: 0.82rem; font-weight: 700; line-height: 1.4; }
+
     input {
       width: 100%;
       min-height: 48px;
@@ -129,6 +134,12 @@
     input:focus {
       border-color: var(--accent);
       box-shadow: 0 0 0 4px rgba(44, 111, 183, 0.12);
+    }
+
+    input[aria-invalid="true"] {
+      border-color: var(--error-ink);
+      background: var(--error-bg);
+      box-shadow: 0 0 0 3px rgba(141, 35, 35, 0.08);
     }
 
     .actions {
@@ -239,6 +250,12 @@
 
     .notes strong { color: #274866; }
 
+    .copy-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+    .copy-actions button { align-self: center; max-width: 100%; }
+    .copy-actions button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .copy-feedback { min-height: 1.2em; line-height: 1.4; }
+    .copy-feedback.is-error { color: var(--error-ink); }
+
     @media (max-width: 760px) {
       .wrap {
         width: min(100%, calc(100% - 16px));
@@ -248,6 +265,9 @@
       .grid { grid-template-columns: 1fr; }
       .card { padding: 16px; }
       .fields { grid-template-columns: 1fr; }
+      .hero { padding: 12px 14px; margin-bottom: 14px; }
+      .hero h1 { font-size: clamp(1.4rem, 5.5vw, 1.6rem); }
+      .hero p { margin-top: 8px; font-size: 0.95rem; line-height: 1.4; }
 
       .metric {
         align-items: flex-start;
@@ -326,31 +346,37 @@
     <div class="grid">
       <section class="card">
         <h2 class="section-title">Entradas</h2>
+        <p class="hint flow-help" id="flowHelp">Use Enter para avançar. Confirme o último campo ou use Calcular para concluir.</p>
 
         <form id="mixForm" novalidate>
           <div class="fields">
             <div class="field">
               <label for="solution1">Concentração da Primeira solução (%)</label>
-              <input id="solution1" name="solution1" type="text" inputmode="decimal" autocomplete="off" value="5" maxlength="5">
-              <div class="hint">De 0 a 100, com no máximo 1 casa decimal.</div>
+              <input id="solution1" name="solution1" type="text" inputmode="decimal" enterkeyhint="next" autocomplete="off" value="5" maxlength="6" aria-describedby="solution1Hint solution1Error">
+              <div class="hint" id="solution1Hint">De 0 a 100, com no máximo 2 casas decimais.</div>
+              <div class="field-error" id="solution1Error" hidden></div>
             </div>
 
             <div class="field">
               <label for="solution2">Concentração da Segunda solução (%)</label>
-              <input id="solution2" name="solution2" type="text" inputmode="decimal" autocomplete="off" value="25" maxlength="5">
-              <div class="hint">De 0 a 100, com no máximo 1 casa decimal.</div>
+              <input id="solution2" name="solution2" type="text" inputmode="decimal" enterkeyhint="next" autocomplete="off" value="25" maxlength="6" aria-describedby="solution2Hint solution2Error">
+              <div class="hint" id="solution2Hint">De 0 a 100, com no máximo 2 casas decimais.</div>
+              <div class="field-error" id="solution2Error" hidden></div>
             </div>
 
             <div class="field">
               <label for="targetConcentration">Concentração desejada (%)</label>
-              <input id="targetConcentration" name="targetConcentration" type="text" inputmode="decimal" autocomplete="off" value="10" maxlength="5">
-              <div class="hint">De 0 a 100, com no máximo 1 casa decimal, e entre as duas concentrações informadas.</div>
+              <input id="targetConcentration" name="targetConcentration" type="text" inputmode="decimal" enterkeyhint="next" autocomplete="off" value="10" maxlength="6" aria-describedby="targetConcentrationHint targetRange targetConcentrationError">
+              <div class="hint" id="targetConcentrationHint">De 0 a 100, com no máximo 2 casas decimais, e entre as duas concentrações informadas.</div>
+              <div class="hint" id="targetRange" aria-live="polite"></div>
+              <div class="field-error" id="targetConcentrationError" hidden></div>
             </div>
 
             <div class="field">
               <label for="totalVolume">Volume total em 24 h (mL)</label>
-              <input id="totalVolume" name="totalVolume" type="text" inputmode="decimal" autocomplete="off" value="200" maxlength="6">
-              <div class="hint">Maior que 0 e até 1000, com no máximo 1 casa decimal.</div>
+              <input id="totalVolume" name="totalVolume" type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" value="200" maxlength="7" aria-describedby="totalVolumeHint totalVolumeError">
+              <div class="hint" id="totalVolumeHint">No máximo 2 casas decimais.</div>
+              <div class="field-error" id="totalVolumeError" hidden></div>
             </div>
           </div>
 
@@ -363,7 +389,7 @@
         </form>
       </section>
 
-      <section class="card result-card">
+      <section class="card result-card" id="resultCard" tabindex="-1">
         <h2 class="section-title">Resultados</h2>
 
         <div class="results">
@@ -386,7 +412,11 @@
           </div>
         </div>
 
-        <div id="summary" class="summary">Preencha os campos; o cálculo será atualizado ao sair do campo.</div>
+        <div id="summary" class="summary" role="status" aria-live="polite">Confirme o último campo ou use Calcular para concluir o preparo.</div>
+        <div class="copy-actions">
+          <button type="button" class="btn-secondary" id="btnCopy" disabled>Copiar resumo do preparo</button>
+          <span class="hint copy-feedback" id="copyFeedback" role="status" aria-live="polite"></span>
+        </div>
       </section>
     </div>
     <div class="spacer-3lines" aria-hidden="true"></div>
@@ -397,7 +427,7 @@
         Este software e todas as informações nele contidas são fornecidos exclusivamente com propósitos educacionais e de auxílio à referência médica. ESTE SISTEMA NÃO SUBSTITUI O JULGAMENTO CLÍNICO INDIVIDUAL, A ANAMNESE E O EXAME FÍSICO. As informações aqui apresentadas não devem ser utilizadas isoladamente para o diagnóstico, conduta ou tratamento de pacientes. A responsabilidade final por qualquer decisão clínica, prescrição ou intervenção é exclusiva do profissional de saúde assistente, devidamente habilitado. Os desenvolvedores não garantem a precisão absoluta de todos os dados e isentam-se de responsabilidade por quaisquer danos diretos, indiretos, materiais ou morais que resultem do uso inadequado, interpretação equivocada ou confiança exclusiva nas informações deste sistema. Pacientes e indivíduos leigos que utilizarem este software devem sempre buscar a orientação de um médico qualificado antes de tomar qualquer decisão sobre sua saúde.
       </div>
     </details>
-<div class="signature-block"><strong>Desenvolvido por Adão L. L. Couto</strong><br><span class="version-name">1.10.09.13</span></div>
+<div class="signature-block"><strong>Desenvolvido por Adão L. L. Couto</strong><br><span class="version-name">1.11.10.13</span></div>
     <div class="spacer-3lines" aria-hidden="true"></div>
 </main>
 
@@ -407,22 +437,23 @@
 
       // constants
       const EMPTY_VALUE = '—';
-      const DEFAULT_SUMMARY_HTML = 'Preencha os campos; o cálculo será atualizado ao sair do campo.';
+      const DEFAULT_SUMMARY_HTML = 'Confirme o último campo ou use Calcular para concluir o preparo.';
       const EPSILON = 1e-9;
+      const FIELD_ORDER = Object.freeze(['solution1', 'solution2', 'targetConcentration', 'totalVolume']);
       const FIELD_LIMITS = Object.freeze({
         concentration: Object.freeze({
           min: 0,
           max: 100,
           maxIntegerDigits: 3,
-          maxDecimals: 1,
-          maxLength: 5
+          maxDecimals: 2,
+          maxLength: 6
         }),
         totalVolume: Object.freeze({
           minExclusive: 0,
-          max: 1000,
+          maxExclusive: 9000,
           maxIntegerDigits: 4,
-          maxDecimals: 1,
-          maxLength: 6
+          maxDecimals: 2,
+          maxLength: 7
         })
       });
 
@@ -431,6 +462,16 @@
         form: document.getElementById('mixForm'),
         alertBox: document.getElementById('alertBox'),
         summary: document.getElementById('summary'),
+        copyButton: document.getElementById('btnCopy'),
+        copyFeedback: document.getElementById('copyFeedback'),
+        resultCard: document.getElementById('resultCard'),
+        targetRange: document.getElementById('targetRange'),
+        fieldErrors: {
+          solution1: document.getElementById('solution1Error'),
+          solution2: document.getElementById('solution2Error'),
+          targetConcentration: document.getElementById('targetConcentrationError'),
+          totalVolume: document.getElementById('totalVolumeError')
+        },
         inputs: {
           solution1: document.getElementById('solution1'),
           solution2: document.getElementById('solution2'),
@@ -451,7 +492,11 @@
       const UI_STATE = {
         lastInputs: null,
         lastResult: null,
-        lastError: ''
+        lastError: '',
+        validatedFields: {},
+        navigationTimer: null,
+        revision: 0,
+        copying: false
       };
 
       // parsers and input constraints
@@ -468,6 +513,7 @@
 
         value = value.replace(/-/g, '');
         value = value.replace(/\./g, ',');
+        value = value.replace(/^,/, '0,');
 
         const firstCommaIndex = value.indexOf(',');
         if (firstCommaIndex !== -1) {
@@ -574,7 +620,7 @@
 
         return value
           .toFixed(decimals === undefined ? 2 : decimals)
-          .replace(/\.?0+$/, '')
+          .replace(/(\.\d*[1-9])0+$|\.0+$/, '$1')
           .replace('.', ',');
       }
 
@@ -583,56 +629,87 @@
       }
 
       // validators
+      function getFieldLimits(key) {
+        return key === 'totalVolume' ? FIELD_LIMITS.totalVolume : FIELD_LIMITS.concentration;
+      }
+
+      function getFieldError(key, inputs) {
+        const messages = {
+          solution1: {
+            missing: 'Preencha a concentração da primeira solução.',
+            pattern: 'A concentração da primeira solução deve ficar entre 0 e 100, com no máximo 2 casas decimais.',
+            range: 'A concentração da primeira solução deve ficar entre 0 e 100.'
+          },
+          solution2: {
+            missing: 'Preencha a concentração da segunda solução.',
+            pattern: 'A concentração da segunda solução deve ficar entre 0 e 100, com no máximo 2 casas decimais.',
+            range: 'A concentração da segunda solução deve ficar entre 0 e 100.'
+          },
+          targetConcentration: {
+            missing: 'Preencha a concentração desejada.',
+            pattern: 'A concentração desejada deve ficar entre 0 e 100, com no máximo 2 casas decimais.',
+            range: 'A concentração desejada deve ficar entre 0 e 100.'
+          },
+          totalVolume: {
+            missing: 'Preencha o volume total em 24 horas.',
+            pattern: 'Informe um volume válido, com no máximo 2 casas decimais.',
+            range: 'Informe um volume total válido.'
+          }
+        };
+        const raw = inputs.rawInputs[key];
+        const value = inputs[key];
+        const limits = getFieldLimits(key);
+        if (raw === '') return messages[key].missing;
+        if (!validateDecimalPattern(raw, limits)) return messages[key].pattern;
+        if (!Number.isFinite(value)) return 'Revise os campos: use apenas números válidos.';
+        if (key === 'totalVolume') {
+          if (value <= limits.minExclusive || value >= limits.maxExclusive) return messages[key].range;
+        } else if (value < limits.min || value > limits.max) {
+          return messages[key].range;
+        }
+        return '';
+      }
+
+      function getTargetRangeError(inputs) {
+        const minConcentration = Math.min(inputs.solution1, inputs.solution2);
+        const maxConcentration = Math.max(inputs.solution1, inputs.solution2);
+        if (inputs.targetConcentration < minConcentration || inputs.targetConcentration > maxConcentration) {
+          return 'A concentração desejada deve ficar entre ' + formatNumber(minConcentration, FIELD_LIMITS.concentration.maxDecimals) + '% e ' + formatNumber(maxConcentration, FIELD_LIMITS.concentration.maxDecimals) + '%.';
+        }
+        return '';
+      }
+
+      function getValidationErrors(inputs) {
+        const errors = {};
+        FIELD_ORDER.forEach(function (key) {
+          const message = getFieldError(key, inputs);
+          if (message) errors[key] = message;
+        });
+        if (!errors.solution1 && !errors.solution2) {
+          if (Math.abs(inputs.solution1 - inputs.solution2) < EPSILON) {
+            const message = 'As duas concentrações das soluções não podem ser iguais para este cálculo.';
+            errors.solution1 = message;
+            errors.solution2 = message;
+          } else if (!errors.targetConcentration) {
+            const message = getTargetRangeError(inputs);
+            if (message) errors.targetConcentration = message;
+          }
+        }
+        return errors;
+      }
+
       function validateInputs(rawInputs, solution1, solution2, targetConcentration, totalVolume) {
-        if (!validateDecimalPattern(rawInputs.solution1, FIELD_LIMITS.concentration)) {
-          return { ok: false, message: 'A concentração da primeira solução deve ficar entre 0 e 100, com no máximo 1 casa decimal.' };
+        const errors = getValidationErrors({
+          rawInputs: rawInputs,
+          solution1: solution1,
+          solution2: solution2,
+          targetConcentration: targetConcentration,
+          totalVolume: totalVolume
+        });
+        const firstField = FIELD_ORDER.find(function (key) { return Boolean(errors[key]); });
+        if (firstField) {
+          return { ok: false, field: firstField, message: errors[firstField], errors: errors };
         }
-
-        if (!validateDecimalPattern(rawInputs.solution2, FIELD_LIMITS.concentration)) {
-          return { ok: false, message: 'A concentração da segunda solução deve ficar entre 0 e 100, com no máximo 1 casa decimal.' };
-        }
-
-        if (!validateDecimalPattern(rawInputs.targetConcentration, FIELD_LIMITS.concentration)) {
-          return { ok: false, message: 'A concentração desejada deve ficar entre 0 e 100, com no máximo 1 casa decimal.' };
-        }
-
-        if (!validateDecimalPattern(rawInputs.totalVolume, FIELD_LIMITS.totalVolume)) {
-          return { ok: false, message: 'O volume total em 24 horas deve ser maior que 0, até 1000, com no máximo 1 casa decimal.' };
-        }
-
-        const allValues = [solution1, solution2, targetConcentration, totalVolume];
-
-        if (allValues.some(function (value) { return !Number.isFinite(value); })) {
-          return { ok: false, message: 'Revise os campos: use apenas números válidos.' };
-        }
-
-        if (solution1 < FIELD_LIMITS.concentration.min || solution1 > FIELD_LIMITS.concentration.max) {
-          return { ok: false, message: 'A concentração da primeira solução deve ficar entre 0 e 100.' };
-        }
-
-        if (solution2 < FIELD_LIMITS.concentration.min || solution2 > FIELD_LIMITS.concentration.max) {
-          return { ok: false, message: 'A concentração da segunda solução deve ficar entre 0 e 100.' };
-        }
-
-        if (targetConcentration < FIELD_LIMITS.concentration.min || targetConcentration > FIELD_LIMITS.concentration.max) {
-          return { ok: false, message: 'A concentração desejada deve ficar entre 0 e 100.' };
-        }
-
-        if (totalVolume <= FIELD_LIMITS.totalVolume.minExclusive || totalVolume > FIELD_LIMITS.totalVolume.max) {
-          return { ok: false, message: 'O volume total em 24 horas deve ser maior que 0 e no máximo 1000 mL.' };
-        }
-
-        if (Math.abs(solution1 - solution2) < EPSILON) {
-          return { ok: false, message: 'As duas concentrações das soluções não podem ser iguais para este cálculo.' };
-        }
-
-        const minConcentration = Math.min(solution1, solution2);
-        const maxConcentration = Math.max(solution1, solution2);
-
-        if (targetConcentration < minConcentration || targetConcentration > maxConcentration) {
-          return { ok: false, message: 'A concentração desejada deve ficar entre as duas concentrações informadas.' };
-        }
-
         return { ok: true };
       }
 
@@ -684,17 +761,40 @@
         UI_STATE.lastError = '';
         DOM.alertBox.textContent = '';
         DOM.alertBox.style.display = 'none';
+        FIELD_ORDER.forEach(function (key) {
+          DOM.inputs[key].setAttribute('aria-invalid', 'false');
+          DOM.fieldErrors[key].textContent = '';
+          DOM.fieldErrors[key].hidden = true;
+        });
       }
 
-      function resetOutputs() {
+      function showValidationErrors(errors) {
+        clearError();
+        const visibleFields = FIELD_ORDER.filter(function (key) {
+          return UI_STATE.validatedFields[key] && Boolean(errors[key]);
+        });
+        visibleFields.forEach(function (key) {
+          DOM.inputs[key].setAttribute('aria-invalid', 'true');
+          DOM.fieldErrors[key].textContent = errors[key];
+          DOM.fieldErrors[key].hidden = false;
+        });
+        if (visibleFields.length) {
+          showError(visibleFields.length === 1 ? errors[visibleFields[0]] : 'Revise os campos indicados antes de calcular.');
+        }
+      }
+
+      function resetOutputs(message) {
         DOM.outputs.solution1Concentration.textContent = EMPTY_VALUE;
         DOM.outputs.solution1Volume.textContent = EMPTY_VALUE;
         DOM.outputs.solution2Concentration.textContent = EMPTY_VALUE;
         DOM.outputs.solution2Volume.textContent = EMPTY_VALUE;
         DOM.outputs.volumeCheck.textContent = EMPTY_VALUE;
         DOM.outputs.concentrationCheck.textContent = EMPTY_VALUE;
-        DOM.summary.innerHTML = DEFAULT_SUMMARY_HTML;
+        DOM.summary.textContent = message || DEFAULT_SUMMARY_HTML;
         UI_STATE.lastResult = null;
+        DOM.copyButton.disabled = true;
+        DOM.copyFeedback.textContent = '';
+        DOM.copyFeedback.classList.remove('is-error');
       }
 
       function renderResult(solution1, solution2, targetConcentration, totalVolume, result) {
@@ -727,6 +827,7 @@
           totalVolumeCheck: totalVolumeCheck,
           finalConcentrationCheck: finalConcentrationCheck
         };
+        DOM.copyButton.disabled = UI_STATE.copying;
       }
 
       // event handlers / controllers
@@ -747,19 +848,93 @@
         };
       }
 
-      function areAllFieldsFilled() {
-        return [
-          DOM.inputs.solution1.value,
-          DOM.inputs.solution2.value,
-          DOM.inputs.targetConcentration.value,
-          DOM.inputs.totalVolume.value
-        ].every(function (value) {
-          return String(value).trim() !== '';
-        });
+      function cancelNavigation() {
+        if (UI_STATE.navigationTimer !== null) {
+          window.clearTimeout(UI_STATE.navigationTimer);
+          UI_STATE.navigationTimer = null;
+        }
       }
 
-      function handleCalculation() {
-        clearError();
+      function queueNavigation(element, position) {
+        cancelNavigation();
+        UI_STATE.navigationTimer = window.setTimeout(function () {
+          UI_STATE.navigationTimer = null;
+          element.focus({ preventScroll: true });
+          const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          element.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: position || 'center' });
+        }, 100);
+      }
+
+      function updateTargetRange() {
+        const inputs = readInputs();
+        if (getFieldError('solution1', inputs) || getFieldError('solution2', inputs)) {
+          DOM.targetRange.textContent = 'Informe as concentrações das duas soluções para definir o intervalo.';
+        } else if (Math.abs(inputs.solution1 - inputs.solution2) < EPSILON) {
+          DOM.targetRange.textContent = 'Informe duas concentrações diferentes para definir o intervalo.';
+        } else {
+          DOM.targetRange.textContent = 'Concentração desejada: entre ' +
+            formatNumber(Math.min(inputs.solution1, inputs.solution2), FIELD_LIMITS.concentration.maxDecimals) + '% e ' +
+            formatNumber(Math.max(inputs.solution1, inputs.solution2), FIELD_LIMITS.concentration.maxDecimals) + '%.';
+        }
+      }
+
+      function refreshFieldErrors() {
+        const errors = getValidationErrors(readInputs());
+        if (!UI_STATE.validatedFields.solution2) {
+          const inputs = readInputs();
+          if (!getFieldError('solution1', inputs) && !getFieldError('solution2', inputs) &&
+              Math.abs(inputs.solution1 - inputs.solution2) < EPSILON) {
+            delete errors.solution1;
+          }
+        }
+        showValidationErrors(errors);
+      }
+
+      function invalidateResult() {
+        cancelNavigation();
+        UI_STATE.revision += 1;
+        UI_STATE.lastInputs = null;
+        resetOutputs('Aguardando atualização. Confirme o último campo ou use Calcular.');
+      }
+
+      function confirmField(key) {
+        cancelNavigation();
+        UI_STATE.validatedFields[key] = true;
+        const inputs = readInputs();
+        let message = getFieldError(key, inputs);
+        if (!message && key === 'solution2' && !getFieldError('solution1', inputs) &&
+            Math.abs(inputs.solution1 - inputs.solution2) < EPSILON) {
+          message = 'As duas concentrações das soluções não podem ser iguais para este cálculo.';
+        }
+        if (!message && key === 'targetConcentration' &&
+            !getFieldError('solution1', inputs) && !getFieldError('solution2', inputs) &&
+            Math.abs(inputs.solution1 - inputs.solution2) >= EPSILON) {
+          message = getTargetRangeError(inputs);
+        }
+        refreshFieldErrors();
+        if (message) {
+          resetOutputs('Revise o campo indicado para concluir o preparo.');
+          queueNavigation(DOM.inputs[key]);
+          return;
+        }
+        normalizeFieldOnBlur(DOM.inputs[key], getFieldLimits(key));
+        updateTargetRange();
+        const nextIndex = FIELD_ORDER.indexOf(key) + 1;
+        if (nextIndex < FIELD_ORDER.length) {
+          queueNavigation(DOM.inputs[FIELD_ORDER[nextIndex]]);
+        } else {
+          handleCalculation();
+        }
+      }
+
+      function handleCalculation(options) {
+        const automatic = Boolean(options && options.automatic);
+        if (!automatic) {
+          cancelNavigation();
+          UI_STATE.revision += 1;
+          FIELD_ORDER.forEach(function (key) { UI_STATE.validatedFields[key] = true; });
+          clearError();
+        }
 
         const inputs = readInputs();
         UI_STATE.lastInputs = inputs;
@@ -773,9 +948,13 @@
         );
 
         if (!validation.ok) {
-          resetOutputs();
-          showError(validation.message);
-          return;
+          resetOutputs(automatic ? 'Aguardando atualização. Confirme o último campo ou use Calcular.' :
+            'Revise os campos indicados para concluir o preparo.');
+          if (!automatic) {
+            showValidationErrors(validation.errors);
+            queueNavigation(DOM.inputs[validation.field]);
+          }
+          return false;
         }
 
         const result = calculateMix(
@@ -788,7 +967,7 @@
         if (!isMixResultValid(result)) {
           resetOutputs();
           showError('Não foi possível calcular com segurança os volumes informados.');
-          return;
+          return false;
         }
 
         renderResult(
@@ -798,25 +977,86 @@
           inputs.totalVolume,
           result
         );
+        DOM.copyFeedback.textContent = '';
+        DOM.copyFeedback.classList.remove('is-error');
+        if (!automatic) queueNavigation(DOM.resultCard, 'start');
+        return true;
       }
 
-      function handleAutoRefresh() {
-        clearError();
-
-        if (!areAllFieldsFilled()) {
-          resetOutputs();
-          return;
+      function copyWithFallback(text) {
+        const previousFocus = document.activeElement;
+        const scrollX = window.scrollX;
+        const scrollY = window.scrollY;
+        const temporaryInput = document.createElement('textarea');
+        temporaryInput.value = text;
+        temporaryInput.readOnly = true;
+        temporaryInput.style.position = 'fixed';
+        temporaryInput.style.left = '-9999px';
+        temporaryInput.style.top = '0';
+        document.body.appendChild(temporaryInput);
+        let copied = false;
+        try {
+          temporaryInput.select();
+          temporaryInput.setSelectionRange(0, temporaryInput.value.length);
+          copied = document.execCommand('copy');
+        } catch (error) {
+          copied = false;
+        } finally {
+          temporaryInput.remove();
+          if (previousFocus && typeof previousFocus.focus === 'function') {
+            previousFocus.focus({ preventScroll: true });
+          }
+          window.scrollTo(scrollX, scrollY);
         }
-
-        handleCalculation();
+        return copied;
       }
 
-      function handleReset() {
-        window.setTimeout(function () {
-          clearError();
-          resetOutputs();
-          UI_STATE.lastInputs = null;
-        }, 0);
+      async function handleCopy() {
+        if (!UI_STATE.lastResult || UI_STATE.copying) return;
+        cancelNavigation();
+        const revision = UI_STATE.revision;
+        const result = UI_STATE.lastResult;
+        const text = DOM.summary.textContent;
+        const isCurrent = function () {
+          return UI_STATE.revision === revision && UI_STATE.lastResult === result;
+        };
+        UI_STATE.copying = true;
+        DOM.copyButton.disabled = true;
+        DOM.copyFeedback.textContent = '';
+        DOM.copyFeedback.classList.remove('is-error');
+        let copied = false;
+        try {
+          if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+            try {
+              await navigator.clipboard.writeText(text);
+              copied = true;
+            } catch (error) {
+              copied = false;
+            }
+          }
+          if (!copied && isCurrent()) copied = copyWithFallback(text);
+          if (isCurrent()) {
+            DOM.copyFeedback.textContent = copied ? 'Resumo copiado.' :
+              'Não foi possível copiar. Tente novamente ou selecione o resumo.';
+            DOM.copyFeedback.classList.toggle('is-error', !copied);
+          }
+        } finally {
+          UI_STATE.copying = false;
+          DOM.copyButton.disabled = !UI_STATE.lastResult;
+        }
+      }
+
+      function handleReset(event) {
+        event.preventDefault();
+        cancelNavigation();
+        UI_STATE.revision += 1;
+        UI_STATE.validatedFields = {};
+        FIELD_ORDER.forEach(function (key) { DOM.inputs[key].value = ''; });
+        clearError();
+        resetOutputs();
+        UI_STATE.lastInputs = null;
+        updateTargetRange();
+        queueNavigation(DOM.inputs.solution1);
       }
 
       // bootstrap
@@ -826,37 +1066,67 @@
           handleCalculation();
         });
 
-        [
-          { element: DOM.inputs.solution1, limits: FIELD_LIMITS.concentration },
-          { element: DOM.inputs.solution2, limits: FIELD_LIMITS.concentration },
-          { element: DOM.inputs.targetConcentration, limits: FIELD_LIMITS.concentration },
-          { element: DOM.inputs.totalVolume, limits: FIELD_LIMITS.totalVolume }
-        ].forEach(function (field) {
-          field.element.addEventListener('input', function () {
+        FIELD_ORDER.forEach(function (key) {
+          const field = { element: DOM.inputs[key], limits: getFieldLimits(key), replaceOnFirstEdit: false };
+          field.element.addEventListener('focus', function () {
+            cancelNavigation();
+            field.replaceOnFirstEdit = field.element.value !== '';
+            if (field.replaceOnFirstEdit) field.element.select();
+          });
+          field.element.addEventListener('beforeinput', function (event) {
+            if (field.replaceOnFirstEdit && /^(insert|delete)/.test(event.inputType || '')) {
+              field.element.select();
+            }
+          });
+          field.element.addEventListener('input', function (event) {
+            if (field.replaceOnFirstEdit) {
+              if (/^insert/.test(event.inputType || '') && typeof event.data === 'string') {
+                field.element.value = event.data;
+              } else if (/^delete/.test(event.inputType || '')) {
+                field.element.value = '';
+              }
+              field.replaceOnFirstEdit = false;
+            }
+            invalidateResult();
             const cursorStart = field.element.selectionStart;
+            const leadingZeroOffset = /^[,.]/.test(field.element.value) ? 1 : 0;
             field.element.value = sanitizeDecimalInput(field.element.value, field.limits);
             if (typeof cursorStart === 'number') {
-              const safePosition = Math.min(cursorStart, field.element.value.length);
+              const safePosition = Math.min(cursorStart + leadingZeroOffset, field.element.value.length);
               field.element.setSelectionRange(safePosition, safePosition);
+            }
+            updateTargetRange();
+            refreshFieldErrors();
+            handleCalculation({ automatic: true });
+          });
+
+          field.element.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter' && !event.isComposing) {
+              event.preventDefault();
+              confirmField(key);
             }
           });
 
-          function normalizeAndCalculateAfterLeavingField() {
+          field.element.addEventListener('blur', function () {
+            const previousValue = field.element.value;
             normalizeFieldOnBlur(field.element, field.limits);
-            handleAutoRefresh();
-          }
-
-          field.element.addEventListener('blur', normalizeAndCalculateAfterLeavingField);
-          field.element.addEventListener('focusout', normalizeAndCalculateAfterLeavingField);
-          field.element.addEventListener('change', normalizeAndCalculateAfterLeavingField);
+            if (field.element.value !== previousValue) invalidateResult();
+            updateTargetRange();
+            refreshFieldErrors();
+            handleCalculation({ automatic: true });
+          });
         });
 
+        DOM.copyButton.addEventListener('click', handleCopy);
         DOM.form.addEventListener('reset', handleReset);
       }
 
       function bootstrap() {
         resetOutputs();
+        clearError();
+        updateTargetRange();
         bindEvents();
+        DOM.inputs.solution1.focus({ preventScroll: true });
       }
 
       bootstrap();
