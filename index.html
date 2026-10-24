@@ -1,7 +1,7 @@
 <!-- NomeDoApp = "Preparo de Soluções" -->
-<!-- VersionName = "1.012.10.16" -->
-<!-- VersionCode = "262891101" -->
-<!-- AndroidVersionName = "1.012.10.16"; AndroidVersionCode = "262891101"; Timestamp = "2026-10-16T11:01:41-03:00" -->
+<!-- VersionName = "1.012.10.22" -->
+<!-- VersionCode = "262950920" -->
+<!-- AndroidVersionName = "1.012.10.22"; AndroidVersionCode = "262950920"; Timestamp = "2026-10-22T09:20:02-03:00" -->
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -277,7 +277,7 @@
 
       .metric .value { text-align: left; }
     }
-  
+
     .legal-disclaimer{
       margin-top:16px;
       padding:0;
@@ -427,7 +427,7 @@
         Este software e todas as informações nele contidas são fornecidos exclusivamente com propósitos educacionais e de auxílio à referência médica. ESTE SISTEMA NÃO SUBSTITUI O JULGAMENTO CLÍNICO INDIVIDUAL, A ANAMNESE E O EXAME FÍSICO. As informações aqui apresentadas não devem ser utilizadas isoladamente para o diagnóstico, conduta ou tratamento de pacientes. A responsabilidade final por qualquer decisão clínica, prescrição ou intervenção é exclusiva do profissional de saúde assistente, devidamente habilitado. Os desenvolvedores não garantem a precisão absoluta de todos os dados e isentam-se de responsabilidade por quaisquer danos diretos, indiretos, materiais ou morais que resultem do uso inadequado, interpretação equivocada ou confiança exclusiva nas informações deste sistema. Pacientes e indivíduos leigos que utilizarem este software devem sempre buscar a orientação de um médico qualificado antes de tomar qualquer decisão sobre sua saúde.
       </div>
     </details>
-<div class="signature-block"><strong>Desenvolvido por Adão L. L. Couto</strong><br><span class="version-name">1.012.10.16</span></div>
+<div class="signature-block"><strong>Desenvolvido por Adão L. L. Couto</strong><br><span class="version-name">1.012.10.22</span></div>
     <div class="spacer-3lines" aria-hidden="true"></div>
 </main>
 
@@ -1132,5 +1132,52 @@
       bootstrap();
     }());
   </script>
+
+<script id="preparo-state-persistence">
+/* APP_STATE_SCHEMA_VERSION = 1. Persist only the four non-sensitive entry fields. */
+(() => {
+  'use strict';
+  const APP_STATE_SCHEMA_VERSION = 1;
+  const KEY = 'preparo:input-state:v1';
+  const FIELDS = ['solution1', 'solution2', 'targetConcentration', 'totalVolume'];
+  const input = (id) => document.getElementById(id);
+  let timer = null;
+  let restoring = true;
+  function snapshot() { return { schema: APP_STATE_SCHEMA_VERSION, values: Object.fromEntries(FIELDS.map(id => [id, input(id).value])) }; }
+  function save() {
+    if (restoring) return;
+    try { localStorage.setItem(KEY, JSON.stringify(snapshot())); } catch (_) { /* storage not available */ }
+  }
+  function delayedSave() { clearTimeout(timer); timer = setTimeout(save, 140); }
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      if (data && data.schema === APP_STATE_SCHEMA_VERSION && data.values && typeof data.values === 'object') {
+        const focused = document.activeElement;
+        if (focused && typeof focused.blur === 'function') focused.blur();
+        FIELDS.forEach(id => {
+          const val = data.values[id];
+          if (typeof val === 'string' && val.length <= 20) { input(id).value = val; }
+        });
+        // Trigger the existing calculator only; no formula is reimplemented here.
+        FIELDS.forEach(id => input(id).dispatchEvent(new Event('blur')));
+      }
+    }
+  } catch (_) { /* malformed storage is ignored, defaults remain usable */ }
+  restoring = false;
+  FIELDS.forEach(id => {
+    input(id).addEventListener('input', delayedSave);
+    input(id).addEventListener('change', save);
+    input(id).addEventListener('blur', delayedSave);
+  });
+  document.getElementById('mixForm').addEventListener('reset', () => {
+    // reset handler synchronously clears fields, then persist cleared state.
+    setTimeout(save, 0);
+  });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+  window.addEventListener('pagehide', save);
+})();
+</script>
 </body>
 </html>
